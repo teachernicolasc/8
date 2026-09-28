@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aventuras de las Palabras - Juego Educativo</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Font Fredoka for child-friendly typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Fredoka', cursive, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-12px) rotate(2deg); }
+        }
+
+        @keyframes pulse-subtle {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes bounce-gentle {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        @keyframes monster-eat {
+            0% { transform: scale(1); }
+            25% { transform: scale(1.2) rotate(-5deg); }
+            50% { transform: scale(0.9) rotate(5deg); }
+            100% { transform: scale(1); }
+        }
+
+        .animate-float {
+            animation: float 3.5s ease-in-out infinite;
+        }
+
+        .animate-pulse-subtle {
+            animation: pulse-subtle 2s ease-in-out infinite;
+        }
+
+        .animate-bounce-gentle {
+            animation: bounce-gentle 1.5s ease-in-out infinite;
+        }
+
+        .animate-eat {
+            animation: monster-eat 0.6s ease-in-out;
+        }
+
+        .bubble-btn {
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(59,130,246,0.5));
+            box-shadow: inset 0 -5px 10px rgba(0,0,0,0.1), 0 8px 15px rgba(59,130,246,0.3);
+        }
+
+        .bubble-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .bubble-btn:active {
+            transform: scale(0.95);
+        }
+
+        .drop-target-active {
+            border-color: #3b82f6 !important;
+            background-color: #eff6ff !important;
+            transform: scale(1.02);
+        }
+
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-amber-50 text-slate-800 min-h-screen flex flex-col justify-between overflow-x-hidden">
+
+    <header class="bg-gradient-to-r from-sky-500 via-indigo-500 to-purple-500 text-white shadow-lg p-3 sm:p-4 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <button onclick="showScreen('main-menu')" class="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-md px-3 py-1.5 sm:px-4 sm:py-2 rounded-2xl transition font-bold text-sm sm:text-base cursor-pointer">
+                <span>🏠</span> Menu Principal
+            </button>
+            <h1 class="text-lg sm:text-2xl font-bold tracking-wide text-amber-200 drop-shadow flex items-center gap-2">
+                <span>✨</span> Aventuras de las Palabras <span>✨</span>
+            </h1>
+            <div class="flex items-center gap-3">
+                <button id="sound-toggle-btn" onclick="toggleSound()" class="bg-white/20 hover:bg-white/30 p-2 rounded-full transition text-lg cursor-pointer" title="Activar/Desactivar Sonido">
+                    🔊
+                </button>
+                <div class="bg-amber-400 text-slate-900 font-bold px-3 py-1 sm:px-4 sm:py-1.5 rounded-2xl shadow flex items-center gap-1.5 text-sm sm:text-base">
+                    <span>⭐</span> <span id="total-stars">0</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto w-full p-4 flex-grow flex flex-col justify-center my-2">
+
+        <!-- MAIN MENU HUB -->
+        <section id="main-menu" class="space-y-6 text-center">
+            <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border-4 border-amber-300 max-w-2xl mx-auto">
+                <div class="text-5xl mb-2 animate-bounce-gentle">🎒🔤</div>
+                <h2 class="text-3xl sm:text-4xl font-extrabold text-indigo-600 mb-3">¡Bienvenido a la Aventura!</h2>
+                <p class="text-slate-600 text-base sm:text-lg mb-6">Aprende sílabas, reconoce sílabas iniciales y construye oraciones paso a paso en esta gran aventura de 45 ejercicios.</p>
+                
+                <button onclick="startSequentialAdventure()" class="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-extrabold text-xl py-4 px-8 rounded-2xl shadow-lg transform hover:scale-105 transition duration-200 mb-4 cursor-pointer flex items-center justify-center gap-3 mx-auto">
+                    🚀 ¡Iniciar Modo Aventura Sequencial!
+                </button>
+
+                <div class="inline-block bg-amber-100 text-amber-800 px-4 py-2 rounded-full text-sm font-semibold mb-2">
+                    🎯 Dirigido a 1° Básico • Conciencia Fonológica y Lectura
+                </div>
+            </div>
+
+            <!-- Station Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Station 1 Card -->
+                <div onclick="startStation(1)" class="bg-gradient-to-b from-sky-400 to-blue-600 text-white p-6 rounded-3xl shadow-lg border-4 border-white hover:shadow-2xl hover:-translate-y-2 transition cursor-pointer flex flex-col justify-between group">
+                    <div>
+                        <div class="text-5xl mb-3 group-hover:scale-110 transition">🌉🫧</div>
+                        <span class="text-xs font-bold uppercase tracking-wider bg-white/20 px-3 py-1 rounded-full">Estación 1 (15 ejercicios)</span>
+                        <h3 class="text-2xl font-bold mt-2 mb-2">El Puente de los Sonidos</h3>
+                        <p class="text-sky-100 text-sm">Explota las burbujas de sílabas en el orden correcto para cruzar el río.</p>
+                    </div>
+                    <button class="mt-6 bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold py-2 px-4 rounded-xl shadow group-hover:scale-105 transition">
+                        Práctica Libre
+                    </button>
+                </div>
+
+                <!-- Station 2 Card -->
+                <div onclick="startStation(2)" class="bg-gradient-to-b from-emerald-400 to-teal-600 text-white p-6 rounded-3xl shadow-lg border-4 border-white hover:shadow-2xl hover:-translate-y-2 transition cursor-pointer flex flex-col justify-between group">
+                    <div>
+                        <div class="text-5xl mb-3 group-hover:scale-110 transition">👾🍎</div>
+                        <span class="text-xs font-bold uppercase tracking-wider bg-white/20 px-3 py-1 rounded-full">Estación 2 (15 ejercicios)</span>
+                        <h3 class="text-2xl font-bold mt-2 mb-2">Monstruos Hambrientos</h3>
+                        <p class="text-emerald-100 text-sm">Alimenta a los monstruos arrastrando la fruta con la palabra correcta.</p>
+                    </div>
+                    <button class="mt-6 bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold py-2 px-4 rounded-xl shadow group-hover:scale-105 transition">
+                        Práctica Libre
+                    </button>
+                </div>
+
+                <!-- Station 3 Card -->
+                <div onclick="startStation(3)" class="bg-gradient-to-b from-purple-400 to-indigo-600 text-white p-6 rounded-3xl shadow-lg border-4 border-white hover:shadow-2xl hover:-translate-y-2 transition cursor-pointer flex flex-col justify-between group">
+                    <div>
+                        <div class="text-5xl mb-3 group-hover:scale-110 transition">🧱✍️</div>
+                        <span class="text-xs font-bold uppercase tracking-wider bg-white/20 px-3 py-1 rounded-full">Estación 3 (15 ejercicios)</span>
+                        <h3 class="text-2xl font-bold mt-2 mb-2">Construye la Oración</h3>
+                        <p class="text-purple-100 text-sm">Ordena los ladrillos de palabras de izquierda a derecha con los espacios correctos.</p>
+                    </div>
+                    <button class="mt-6 bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold py-2 px-4 rounded-xl shadow group-hover:scale-105 transition">
+                        Práctica Libre
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section id="station-1" class="hidden space-y-4">
+            <div class="bg-white p-4 sm:p-6 rounded-3xl shadow-xl border-4 border-sky-300">
+                <!-- Header / Progress -->
+                <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-sky-100 text-sky-700 font-bold text-xs px-3 py-1 rounded-full">Estación 1 de 3</span>
+                        <h2 class="text-xl sm:text-2xl font-bold text-sky-600">El Puente de los Sonidos</h2>
+                    </div>
+                    <div class="text-slate-500 font-medium text-sm">
+                        Ejercicio <span id="s1-level" class="font-bold text-sky-600">1</span> de <span id="s1-total-levels">15</span>
+                    </div>
+                </div>
+
+                <!-- Game Visual Area -->
+                <div class="relative bg-gradient-to-b from-sky-200 to-blue-300 rounded-2xl p-6 min-h-[380px] flex flex-col justify-between overflow-hidden shadow-inner border-2 border-sky-400">
+                    <!-- River and Bridge Background -->
+                    <div class="absolute bottom-0 left-0 right-0 h-24 bg-blue-500/30 flex items-center justify-center">
+                        <div class="w-full border-t-4 border-dashed border-amber-600/60 my-2"></div>
+                    </div>
+
+                    <!-- Target Word Display Area -->
+                    <div class="relative z-10 flex flex-col items-center">
+                        <div class="bg-white/90 backdrop-blur rounded-2xl p-4 shadow-md flex items-center gap-4 border-2 border-sky-200">
+                            <span id="s1-image" class="text-6xl sm:text-7xl animate-pulse-subtle">🍐</span>
+                            <div>
+                                <p class="text-xs text-sky-600 font-bold uppercase tracking-wider">Escucha la palabra</p>
+                                <button onclick="playStation1Audio()" class="mt-1 bg-sky-500 hover:bg-sky-600 text-white font-bold px-4 py-2 rounded-xl text-sm shadow flex items-center gap-2 transition cursor-pointer">
+                                    🔊 Escuchar Palabra
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Syllable Target Slots -->
+                        <div id="s1-slots-container" class="flex gap-3 mt-6">
+                            <!-- Dynamically generated slots -->
+                        </div>
+                    </div>
+
+                    <!-- Character crossing bridge -->
+                    <div class="relative z-10 flex justify-between items-center px-4 mt-4">
+                        <div id="s1-character" class="text-4xl transition-all duration-500" style="transform: translateX(0px);">
+                            🏃‍♂️
+                        </div>
+                        <div class="text-4xl">
+                            🏁
+                        </div>
+                    </div>
+
+                    <!-- Floating Syllable Bubbles Pool -->
+                    <div class="relative z-10 mt-6 bg-white/40 backdrop-blur rounded-2xl p-4 border border-white/60">
+                        <p class="text-center text-xs font-bold text-sky-800 uppercase mb-3">Toca la sílaba correcta en orden:</p>
+                        <div id="s1-bubbles-container" class="flex flex-wrap justify-center gap-4 sm:gap-6 min-h-[70px] items-center">
+                            <!-- Floating bubbles populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Instructions -->
+                <div class="mt-4 text-center text-sm text-slate-500 font-medium">
+                    💡 Escucha atentamente la palabra y toca las sílabas ordenadamente (ejemplo: <span class="font-bold text-sky-600">PE - RA</span>).
+                </div>
+            </div>
+        </section>
+
+        <section id="station-2" class="hidden space-y-4">
+            <div class="bg-white p-4 sm:p-6 rounded-3xl shadow-xl border-4 border-emerald-300">
+                <!-- Header / Progress -->
+                <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-emerald-100 text-emerald-700 font-bold text-xs px-3 py-1 rounded-full">Estación 2 de 3</span>
+                        <h2 class="text-xl sm:text-2xl font-bold text-emerald-600">Alimentador de Monstruos Hambrientos</h2>
+                    </div>
+                    <div class="text-slate-500 font-medium text-sm">
+                        Progreso: <span id="s2-progress-text" class="font-bold text-emerald-600">1 / 15</span>
+                    </div>
+                </div>
+
+                <!-- Game Canvas Area -->
+                <div class="bg-gradient-to-b from-amber-100 via-emerald-50 to-teal-100 rounded-2xl p-4 sm:p-6 min-h-[420px] flex flex-col justify-between shadow-inner border-2 border-emerald-200 relative">
+                    
+                    <!-- Monsters Container -->
+                    <div id="s2-monsters-container" class="grid grid-cols-3 gap-2 sm:gap-4 my-2">
+                        <!-- Monsters populated by JS -->
+                    </div>
+
+                    <!-- Fruit Basket / Source Draggables -->
+                    <div class="bg-white/80 backdrop-blur rounded-2xl p-4 border-2 border-emerald-300 shadow-md">
+                        <p class="text-center text-xs font-bold text-emerald-800 uppercase mb-2">
+                            Arrastra o toca una fruta y luego toca al monstruo goloso con su sílaba inicial:
+                        </p>
+                        <div id="s2-fruits-container" class="flex flex-wrap justify-center gap-4 min-h-[80px] items-center">
+                            <!-- Fruits populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Helper Footer -->
+                <div class="mt-4 text-center text-sm text-slate-500 font-medium">
+                    💡 Ejemplo: La palabra <span class="font-bold text-emerald-600">MAPA</span> empieza con <span class="font-bold text-emerald-600">MA</span>. ¡Dásela al monstruo que lleva <span class="font-bold text-emerald-600">MA</span>!
+                </div>
+            </div>
+        </section>
+
+        <section id="station-3" class="hidden space-y-4">
+            <div class="bg-white p-4 sm:p-6 rounded-3xl shadow-xl border-4 border-purple-300">
+                <!-- Header / Progress -->
+                <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-purple-100 text-purple-700 font-bold text-xs px-3 py-1 rounded-full">Estación 3 de 3</span>
+                        <h2 class="text-xl sm:text-2xl font-bold text-purple-600">Construye la Oración</h2>
+                    </div>
+                    <div class="text-slate-500 font-medium text-sm">
+                        Oración <span id="s3-level" class="font-bold text-purple-600">1</span> de <span id="s3-total-levels">15</span>
+                    </div>
+                </div>
+
+                <!-- Main Game Play Area -->
+                <div class="bg-gradient-to-b from-purple-100 via-indigo-50 to-pink-100 rounded-2xl p-4 sm:p-6 min-h-[400px] flex flex-col justify-between shadow-inner border-2 border-purple-200">
+                    
+                    <!-- Character Speech Bubble -->
+                    <div class="flex items-center gap-4 bg-white/90 p-4 rounded-2xl shadow-sm border border-purple-200">
+                        <div id="s3-character-avatar" class="text-5xl animate-bounce-gentle">🐱</div>
+                        <div>
+                            <p id="s3-prompt-text" class="text-slate-700 font-medium text-base sm:text-lg">
+                                ¡Ayúdame a decir la oración completa!
+                            </p>
+                            <button onclick="playStation3TargetAudio()" class="mt-1 text-xs bg-purple-500 hover:bg-purple-600 text-white font-bold px-3 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer">
+                                🔊 Escuchar Oración
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Sentence Building Track (Directionality left-to-right) -->
+                    <div class="my-4 bg-purple-900/10 p-4 sm:p-6 rounded-2xl border-2 border-dashed border-purple-400">
+                        <div class="flex items-center justify-between text-xs text-purple-700 font-bold mb-2">
+                            <span class="flex items-center gap-1">➡️ COMIENZA AQUÍ (Izquierda)</span>
+                            <span>TERMINA AQUÍ (Derecha) 🏁</span>
+                        </div>
+                        
+                        <!-- Drop Slots Container -->
+                        <div id="s3-sentence-slots" class="flex flex-wrap gap-3 items-center justify-start min-h-[70px]">
+                            <!-- Slots created by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Word Bricks Pool -->
+                    <div class="bg-white/80 backdrop-blur rounded-2xl p-4 border-2 border-purple-300 shadow-md">
+                        <p class="text-center text-xs font-bold text-purple-800 uppercase mb-3">
+                            Ladrillos de palabras desordenadas (Haz clic para colocar):
+                        </p>
+                        <div id="s3-bricks-pool" class="flex flex-wrap justify-center gap-3 min-h-[60px] items-center">
+                            <!-- Bricks created by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer tip -->
+                <div class="mt-4 text-center text-sm text-slate-500 font-medium">
+                    💡 Recuerda dejar espacios entre cada palabra y leer de izquierda a derecha.
+                </div>
+            </div>
+        </section>
+
+        <div id="victory-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl border-4 border-amber-400 animate-pulse-subtle">
+                <div id="victory-icon" class="text-6xl mb-2">🏆</div>
+                <h3 id="victory-title" class="text-3xl font-extrabold text-amber-500 mb-2">¡Excelente Trabajo!</h3>
+                <p id="victory-message" class="text-slate-600 font-medium mb-6">
+                    Has completado la estación exitosamente y ganado tus estrellas de aprendizaje.
+                </p>
+
+                <div class="flex justify-center gap-2 text-4xl mb-6">
+                    <span>⭐</span><span>⭐</span><span>⭐</span>
+                </div>
+
+                <div id="victory-buttons" class="flex flex-col sm:flex-row gap-3">
+                    <button onclick="retryCurrentStation()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-3 px-4 rounded-xl transition cursor-pointer">
+                        🔄 Repetir
+                    </button>
+                    <button id="next-station-btn" onclick="advanceToNextStation()" class="flex-1 bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold py-3 px-4 rounded-xl transition shadow cursor-pointer">
+                        ▶️ Siguiente Estación
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        let soundEnabled = true;
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+        let isSequentialMode = false;
+        let currentStationNum = 1;
+        let totalStars = 0;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('sound-toggle-btn').innerText = soundEnabled ? '🔊' : '🔇';
+        }
+
+        function playTone(freq, type = 'sine', duration = 0.15) {
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {
+                console.log('Audio playback prevented');
+            }
+        }
+
+        function playPopSound() { playTone(400, 'sine', 0.1); }
+        function playSuccessSound() {
+            if (!soundEnabled) return;
+            const notes = [523.25, 659.25, 783.99, 1046.50];
+            notes.forEach((freq, idx) => {
+                setTimeout(() => playTone(freq, 'triangle', 0.2), idx * 100);
+            });
+        }
+        function playWrongSound() { playTone(180, 'sawtooth', 0.25); }
+        function playEatSound() {
+            if (!soundEnabled) return;
+            playTone(300, 'sine', 0.1);
+            setTimeout(() => playTone(450, 'sine', 0.15), 80);
+        }
+
+        function speakText(text, rate = 0.85) {
+            if (!soundEnabled) return;
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'es-ES';
+                utterance.rate = rate;
+                utterance.pitch = 1.1;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function updateStars(amount) {
+            totalStars += amount;
+            document.getElementById('total-stars').innerText = totalStars;
+        }
+
+        function showScreen(screenId) {
+            initAudio();
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('station-1').classList.add('hidden');
+            document.getElementById('station-2').classList.add('hidden');
+            document.getElementById('station-3').classList.add('hidden');
+            document.getElementById('victory-modal').classList.add('hidden');
+
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        function startSequentialAdventure() {
+            isSequentialMode = true;
+            startStation(1);
+        }
+
+        function startStation(stationNumber) {
+            currentStationNum = stationNumber;
+            showScreen(`station-${stationNumber}`);
+            if (stationNumber === 1) initStation1();
+            if (stationNumber === 2) initStation2();
+            if (stationNumber === 3) initStation3();
+        }
+
+        function advanceToNextStation() {
+            document.getElementById('victory-modal').classList.add('hidden');
+            if (currentStationNum < 3) {
+                startStation(currentStationNum + 1);
+            } else {
+                showScreen('main-menu');
+            }
+        }
+
+        function retryCurrentStation() {
+            document.getElementById('victory-modal').classList.add('hidden');
+            startStation(currentStationNum);
+        }
+
+        function showStationVictory(message) {
+            playSuccessSound();
+            if (window.confetti) {
+                confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
+            }
+            updateStars(5);
+
+            const nextBtn = document.getElementById('next-station-btn');
+            if (currentStationNum < 3) {
+                nextBtn.innerText = `▶️ Ir a Estación ${currentStationNum + 1}`;
+                nextBtn.onclick = advanceToNextStation;
+            } else {
+                nextBtn.innerText = "🏆 Completar Gran Aventura";
+                nextBtn.onclick = () => showScreen('main-menu');
+            }
+
+            document.getElementById('victory-title').innerText = currentStationNum === 3 ? "¡Aventura Completada!" : "¡Estación Superada!";
+            document.getElementById('victory-message').innerText = message;
+            document.getElementById('victory-modal').classList.remove('hidden');
+            speakText("¡Excelente trabajo! Has completado esta estación.");
+        }
+
+        const s1Data = [
+            { word: 'PERA', syllables: ['PE', 'RA'], icon: '🍐', distractors: ['MA', 'LO'] },
+            { word: 'GATO', syllables: ['GA', 'TO'], icon: '🐱', distractors: ['PA', 'SO'] },
+            { word: 'PELOTA', syllables: ['PE', 'LO', 'TA'], icon: '⚽', distractors: ['CA', 'MI'] },
+            { word: 'SOL', syllables: ['SOL'], icon: '☀️', distractors: ['LA', 'RO'] },
+            { word: 'MANZANA', syllables: ['MAN', 'ZA', 'NA'], icon: '🍎', distractors: ['PU', 'TE'] },
+            { word: 'MESA', syllables: ['ME', 'SA'], icon: '🪑', distractors: ['LI', 'NO'] },
+            { word: 'CASA', syllables: ['CA', 'SA'], icon: '🏠', distractors: ['BO', 'RE'] },
+            { word: 'PATO', syllables: ['PA', 'TO'], icon: '🦆', distractors: ['MU', 'VA'] },
+            { word: 'LUNA', syllables: ['LU', 'NA'], icon: '🌙', distractors: ['FI', 'DE'] },
+            { word: 'PERRO', syllables: ['PE', 'RRO'], icon: '🐶', distractors: ['CU', 'TA'] },
+            { word: 'LÁPIZ', syllables: ['LÁ', 'PIZ'], icon: '✏️', distractors: ['SE', 'MO'] },
+            { word: 'ZAPATO', syllables: ['ZA', 'PA', 'TO'], icon: '👞', distractors: ['NE', 'RI'] },
+            { word: 'TOMATE', syllables: ['TO', 'MA', 'TE'], icon: '🍅', distractors: ['SUL', 'BA'] },
+            { word: 'CAMISA', syllables: ['CA', 'MI', 'SA'], icon: '👕', distractors: ['RO', 'PIN'] },
+            { word: 'MARIPOSA', syllables: ['MA', 'RI', 'PO', 'SA'], icon: '🦋', distractors: ['TU', 'LLE'] }
+        ];
+
+        let s1LevelIndex = 0;
+        let s1CurrentProgressIndex = 0;
+
+        function initStation1() {
+            s1LevelIndex = 0;
+            loadStation1Level();
+        }
+
+        function loadStation1Level() {
+            const currentItem = s1Data[s1LevelIndex];
+            s1CurrentProgressIndex = 0;
+
+            document.getElementById('s1-level').innerText = s1LevelIndex + 1;
+            document.getElementById('s1-total-levels').innerText = s1Data.length;
+            document.getElementById('s1-image').innerText = currentItem.icon;
+
+            const slotsContainer = document.getElementById('s1-slots-container');
+            slotsContainer.innerHTML = '';
+            currentItem.syllables.forEach((syl, idx) => {
+                const slot = document.createElement('div');
+                slot.id = `s1-slot-${idx}`;
+                slot.className = "w-16 h-16 sm:w-20 sm:h-20 border-4 border-dashed border-sky-400 bg-white/80 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold text-sky-800 shadow-sm transition";
+                slot.innerText = '_';
+                slotsContainer.appendChild(slot);
+            });
+
+            document.getElementById('s1-character').style.transform = `translateX(0px)`;
+
+            const allBubbles = [...currentItem.syllables, ...currentItem.distractors];
+            allBubbles.sort(() => Math.random() - 0.5);
+
+            const bubblesContainer = document.getElementById('s1-bubbles-container');
+            bubblesContainer.innerHTML = '';
+            allBubbles.forEach((sylText, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "bubble-btn text-white text-xl sm:text-2xl font-extrabold w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center cursor-pointer text-sky-900 border-2 border-white animate-float";
+                btn.style.animationDelay = `${idx * 0.15}s`;
+                btn.innerText = sylText;
+                btn.onclick = () => handleSyllableClick(sylText, btn);
+                bubblesContainer.appendChild(btn);
+            });
+
+            setTimeout(() => playStation1Audio(), 300);
+        }
+
+        function playStation1Audio() {
+            speakText(s1Data[s1LevelIndex].word);
+        }
+
+        function handleSyllableClick(sylText, buttonElem) {
+            const currentItem = s1Data[s1LevelIndex];
+            const expectedSyllable = currentItem.syllables[s1CurrentProgressIndex];
+
+            speakText(sylText, 1.0);
+
+            if (sylText === expectedSyllable) {
+                playPopSound();
+                buttonElem.style.transform = 'scale(0)';
+                buttonElem.style.opacity = '0';
+                setTimeout(() => buttonElem.remove(), 200);
+
+                const slot = document.getElementById(`s1-slot-${s1CurrentProgressIndex}`);
+                slot.innerText = sylText;
+                slot.classList.remove('border-dashed');
+                slot.classList.add('bg-amber-300', 'border-amber-500', 'scale-105');
+
+                s1CurrentProgressIndex++;
+
+                const progressPct = (s1CurrentProgressIndex / currentItem.syllables.length) * 180;
+                document.getElementById('s1-character').style.transform = `translateX(${progressPct}px)`;
+
+                if (s1CurrentProgressIndex === currentItem.syllables.length) {
+                    playSuccessSound();
+                    setTimeout(() => speakText(`¡Muy bien! ${currentItem.word}`), 300);
+
+                    setTimeout(() => {
+                        s1LevelIndex++;
+                        if (s1LevelIndex < s1Data.length) {
+                            loadStation1Level();
+                        } else {
+                            showStationVictory("¡Completaste los 15 ejercicios de El Puente de los Sonidos!");
+                        }
+                    }, 1400);
+                }
+            } else {
+                playWrongSound();
+                buttonElem.classList.add('bg-red-400');
+                setTimeout(() => buttonElem.classList.remove('bg-red-400'), 500);
+            }
+        }
+
+        const s2Rounds = [
+            {
+                roundNum: 1,
+                monsters: [
+                    { id: 'MA', label: 'MA', color: 'bg-rose-400', border: 'border-rose-500', icon: '👹' },
+                    { id: 'PA', label: 'PA', color: 'bg-amber-400', border: 'border-amber-500', icon: '👾' },
+                    { id: 'LA', label: 'LA', color: 'bg-emerald-400', border: 'border-emerald-500', icon: '👽' }
+                ],
+                fruits: [
+                    { id: 'f1', word: 'MAPA', syllable: 'MA', icon: '🍎' },
+                    { id: 'f2', word: 'PALO', syllable: 'PA', icon: '🍌' },
+                    { id: 'f3', word: 'LATA', syllable: 'LA', icon: '🍊' },
+                    { id: 'f4', word: 'MARTA', syllable: 'MA', icon: '🍓' },
+                    { id: 'f5', word: 'PALA', syllable: 'PA', icon: '🍐' }
+                ]
+            },
+            {
+                roundNum: 2,
+                monsters: [
+                    { id: 'CA', label: 'CA', color: 'bg-purple-400', border: 'border-purple-500', icon: '🤖' },
+                    { id: 'SA', label: 'SA', color: 'bg-blue-400', border: 'border-blue-500', icon: '👻' },
+                    { id: 'TA', label: 'TA', color: 'bg-orange-400', border: 'border-orange-500', icon: '🤡' }
+                ],
+                fruits: [
+                    { id: 'f6', word: 'CASA', syllable: 'CA', icon: '🍇' },
+                    { id: 'f7', word: 'SAPO', syllable: 'SA', icon: '🍉' },
+                    { id: 'f8', word: 'TAZA', syllable: 'TA', icon: '🍍' },
+                    { id: 'f9', word: 'CAMA', syllable: 'CA', icon: '🍑' },
+                    { id: 'f10', word: 'SACO', syllable: 'SA', icon: '🍒' }
+                ]
+            },
+            {
+                roundNum: 3,
+                monsters: [
+                    { id: 'MO', label: 'MO', color: 'bg-teal-400', border: 'border-teal-500', icon: '🐲' },
+                    { id: 'PO', label: 'PO', color: 'bg-pink-400', border: 'border-pink-500', icon: '🦄' },
+                    { id: 'TO', label: 'TO', color: 'bg-yellow-400', border: 'border-yellow-500', icon: '🦁' }
+                ],
+                fruits: [
+                    { id: 'f11', word: 'MONO', syllable: 'MO', icon: '🍌' },
+                    { id: 'f12', word: 'POLLO', syllable: 'PO', icon: '🍎' },
+                    { id: 'f13', word: 'TORO', syllable: 'TO', icon: '🍊' },
+                    { id: 'f14', word: 'MOTO', syllable: 'MO', icon: '🍓' },
+                    { id: 'f15', word: 'POTRO', syllable: 'PO', icon: '🍐' }
+                ]
+            }
+        ];
+
+        let s2CurrentRoundIndex = 0;
+        let s2TotalFedCount = 0;
+        let selectedFruitId = null;
+
+        function initStation2() {
+            s2CurrentRoundIndex = 0;
+            s2TotalFedCount = 0;
+            loadStation2Round();
+        }
+
+        function loadStation2Round() {
+            const currentRound = s2Rounds[s2CurrentRoundIndex];
+            document.getElementById('s2-progress-text').innerText = `${s2TotalFedCount} / 15`;
+
+            const monstersContainer = document.getElementById('s2-monsters-container');
+            monstersContainer.innerHTML = '';
+
+            currentRound.monsters.forEach(m => {
+                const mBox = document.createElement('div');
+                mBox.className = `${m.color} ${m.border} border-4 rounded-3xl p-3 sm:p-4 text-center shadow-lg transition flex flex-col items-center justify-between relative cursor-pointer min-h-[160px]`;
+                mBox.dataset.syllable = m.id;
+                
+                mBox.ondragover = (e) => { e.preventDefault(); mBox.classList.add('scale-105'); };
+                mBox.ondragleave = () => { mBox.classList.remove('scale-105'); };
+                mBox.ondrop = (e) => {
+                    e.preventDefault();
+                    mBox.classList.remove('scale-105');
+                    const fruitId = e.dataTransfer.getData('text/plain');
+                    feedMonster(fruitId, m.id, mBox);
+                };
+
+                mBox.onclick = () => {
+                    if (selectedFruitId) feedMonster(selectedFruitId, m.id, mBox);
+                };
+
+                mBox.innerHTML = `
+                    <div class="text-5xl sm:text-6xl monster-avatar transition">${m.icon}</div>
+                    <div class="bg-white text-slate-900 font-extrabold px-3 py-1 rounded-full text-base sm:text-lg border-2 border-slate-800 shadow mt-2">
+                        Sílaba: <span class="text-indigo-600">${m.label}</span>
+                    </div>
+                `;
+                monstersContainer.appendChild(mBox);
+            });
+
+            renderFruits();
+        }
+
+        function renderFruits() {
+            const fruitsContainer = document.getElementById('s2-fruits-container');
+            fruitsContainer.innerHTML = '';
+
+            const fruits = s2Rounds[s2CurrentRoundIndex].fruits;
+            fruits.forEach(f => {
+                const fElem = document.createElement('div');
+                fElem.id = `fruit-${f.id}`;
+                fElem.draggable = true;
+                fElem.className = "bg-white border-2 border-amber-300 hover:border-amber-500 rounded-2xl px-3 py-2 shadow-md hover:shadow-lg transition cursor-grab active:cursor-grabbing flex items-center gap-2 select-none";
+                
+                fElem.ondragstart = (e) => {
+                    e.dataTransfer.setData('text/plain', f.id);
+                    speakText(f.word);
+                };
+
+                fElem.onclick = () => {
+                    selectedFruitId = f.id;
+                    speakText(f.word);
+                    document.querySelectorAll('#s2-fruits-container > div').forEach(el => el.classList.remove('ring-4', 'ring-indigo-400'));
+                    fElem.classList.add('ring-4', 'ring-indigo-400');
+                };
+
+                fElem.innerHTML = `
+                    <span class="text-3xl sm:text-4xl">${f.icon}</span>
+                    <span class="font-extrabold text-slate-800 text-base sm:text-lg">${f.word}</span>
+                `;
+                fruitsContainer.appendChild(fElem);
+            });
+        }
+
+        function feedMonster(fruitId, monsterSyllable, monsterElem) {
+            const currentRound = s2Rounds[s2CurrentRoundIndex];
+            const fruitData = currentRound.fruits.find(f => f.id === fruitId);
+            if (!fruitData) return;
+
+            if (fruitData.syllable === monsterSyllable) {
+                playEatSound();
+                monsterElem.classList.add('animate-eat');
+                setTimeout(() => monsterElem.classList.remove('animate-eat'), 600);
+
+                const fElem = document.getElementById(`fruit-${fruitId}`);
+                if (fElem) fElem.remove();
+
+                selectedFruitId = null;
+
+                const idx = currentRound.fruits.findIndex(f => f.id === fruitId);
+                if (idx !== -1) currentRound.fruits.splice(idx, 1);
+
+                s2TotalFedCount++;
+                document.getElementById('s2-progress-text').innerText = `${s2TotalFedCount} / 15`;
+
+                speakText(`¡Ñam! ${fruitData.word} empieza con ${monsterSyllable}`);
+
+                if (currentRound.fruits.length === 0) {
+                    s2CurrentRoundIndex++;
+                    if (s2CurrentRoundIndex < s2Rounds.length) {
+                        setTimeout(() => loadStation2Round(), 1000);
+                    } else {
+                        setTimeout(() => {
+                            showStationVictory("¡Alimentaste a todos los monstruos en los 15 ejercicios!");
+                        }, 1000);
+                    }
+                }
+            } else {
+                playWrongSound();
+                speakText(`¡Ups! ${fruitData.word} no empieza con ${monsterSyllable}`);
+            }
+        }
+
+        const s3Data = [
+            { sentence: ["El", "gato", "salta"], avatar: "🐱" },
+            { sentence: ["La", "niña", "lee"], avatar: "👧" },
+            { sentence: ["El", "perro", "corre"], avatar: "🐶" },
+            { sentence: ["Mi", "mamá", "me", "ama"], avatar: "❤️" },
+            { sentence: ["El", "sol", "brilla"], avatar: "☀️" },
+            { sentence: ["La", "pelota", "es", "roja"], avatar: "⚽" },
+            { sentence: ["Yo", "como", "una", "manzana"], avatar: "🍎" },
+            { sentence: ["El", "osito", "duerme"], avatar: "🧸" },
+            { sentence: ["La", "mariposa", "vuela"], avatar: "🦋" },
+            { sentence: ["El", "pájaro", "canta"], avatar: "🐦" },
+            { sentence: ["Mi", "papá", "usa", "sombrero"], avatar: "🎩" },
+            { sentence: ["El", "tren", "va", "rápido"], avatar: "🚆" },
+            { sentence: ["La", "flor", "es", "bonita"], avatar: "🌸" },
+            { sentence: ["El", "pez", "nada"], avatar: "🐟" },
+            { sentence: ["Los", "niños", "juegan"], avatar: "🧒" }
+        ];
+
+        let s3LevelIndex = 0;
+        let s3UserSentence = [];
+
+        function initStation3() {
+            s3LevelIndex = 0;
+            loadStation3Level();
+        }
+
+        function loadStation3Level() {
+            const currentItem = s3Data[s3LevelIndex];
+            s3UserSentence = new Array(currentItem.sentence.length).fill(null);
+
+            document.getElementById('s3-level').innerText = s3LevelIndex + 1;
+            document.getElementById('s3-total-levels').innerText = s3Data.length;
+            document.getElementById('s3-character-avatar').innerText = currentItem.avatar;
+
+            const slotsContainer = document.getElementById('s3-sentence-slots');
+            slotsContainer.innerHTML = '';
+
+            currentItem.sentence.forEach((_, idx) => {
+                const slot = document.createElement('div');
+                slot.className = "min-w-[90px] h-14 bg-white/90 border-3 border-dashed border-purple-400 rounded-2xl flex items-center justify-center p-2 shadow-inner transition";
+                slot.innerText = '';
+                slot.dataset.index = idx;
+                
+                slot.onclick = () => {
+                    if (s3UserSentence[idx]) returnBrickToPool(idx);
+                };
+
+                slotsContainer.appendChild(slot);
+            });
+
+            const shuffledWords = currentItem.sentence.map((w, originalIdx) => ({ word: w, id: originalIdx }));
+            shuffledWords.sort(() => Math.random() - 0.5);
+
+            const poolContainer = document.getElementById('s3-bricks-pool');
+            poolContainer.innerHTML = '';
+
+            shuffledWords.forEach(item => {
+                const brick = document.createElement('button');
+                brick.id = `brick-${item.id}`;
+                brick.className = "bg-amber-400 hover:bg-amber-300 text-slate-900 border-b-4 border-amber-600 font-extrabold px-4 py-2 rounded-2xl shadow-md hover:scale-105 transition cursor-pointer text-base sm:text-lg";
+                brick.innerText = item.word;
+                brick.onclick = () => placeBrickInFirstAvailableSlot(item);
+                poolContainer.appendChild(brick);
+            });
+
+            setTimeout(() => playStation3TargetAudio(), 300);
+        }
+
+        function playStation3TargetAudio() {
+            const targetSentence = s3Data[s3LevelIndex].sentence.join(' ');
+            speakText(targetSentence);
+        }
+
+        function placeBrickInFirstAvailableSlot(item) {
+            const emptyIdx = s3UserSentence.findIndex(val => val === null);
+            if (emptyIdx === -1) return;
+
+            speakText(item.word);
+            playPopSound();
+
+            s3UserSentence[emptyIdx] = item;
+
+            const slots = document.getElementById('s3-sentence-slots').children;
+            const targetSlot = slots[emptyIdx];
+            targetSlot.innerText = item.word;
+            targetSlot.classList.remove('border-dashed', 'bg-white/90');
+            targetSlot.classList.add('bg-purple-500', 'text-white', 'font-extrabold', 'border-purple-600', 'scale-105');
+
+            document.getElementById(`brick-${item.id}`).classList.add('hidden');
+
+            if (!s3UserSentence.includes(null)) {
+                verifySentence();
+            }
+        }
+
+        function returnBrickToPool(slotIdx) {
+            const item = s3UserSentence[slotIdx];
+            if (!item) return;
+
+            playPopSound();
+            s3UserSentence[slotIdx] = null;
+
+            const slots = document.getElementById('s3-sentence-slots').children;
+            const targetSlot = slots[slotIdx];
+            targetSlot.innerText = '';
+            targetSlot.className = "min-w-[90px] h-14 bg-white/90 border-3 border-dashed border-purple-400 rounded-2xl flex items-center justify-center p-2 shadow-inner transition";
+
+            document.getElementById(`brick-${item.id}`).classList.remove('hidden');
+        }
+
+        function verifySentence() {
+            const currentItem = s3Data[s3LevelIndex];
+            const isCorrect = s3UserSentence.every((item, idx) => item.word === currentItem.sentence[idx]);
+
+            if (isCorrect) {
+                playSuccessSound();
+                const fullSentence = currentItem.sentence.join(' ');
+                setTimeout(() => speakText(`¡Excelente! La oración es: ${fullSentence}`), 400);
+
+                setTimeout(() => {
+                    s3LevelIndex++;
+                    if (s3LevelIndex < s3Data.length) {
+                        loadStation3Level();
+                    } else {
+                        showStationVictory("¡Felicidades! Completaste las 15 oraciones y toda la Gran Aventura.");
+                    }
+                }, 1800);
+            } else {
+                playWrongSound();
+                speakText("La oración no coincide. ¡Intenta reordenar los ladrillos!");
+            }
+        }
+
+        window.addEventListener('click', () => initAudio(), { once: true });
+    </script>
+</body>
+</html>
